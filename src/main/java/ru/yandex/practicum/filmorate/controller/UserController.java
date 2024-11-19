@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -34,7 +35,7 @@ public class UserController {
     }
 
     @PutMapping
-    public User update(@Valid @RequestBody User newUser) {
+    public User update(@Valid @RequestBody User newUser) throws NotFoundException {
         if (newUser.getId() == null) {
             throw new ValidationException("Id должен быть указан");
         }
@@ -62,14 +63,14 @@ public class UserController {
     }
 
     public void fillUserName(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
+        if (!StringUtils.hasText(user.getName())) {
             log.warn("Имя пользователя отсутствует");
             user.setName(user.getLogin());
         }
     }
 
     public void checkBirthday(User user) {
-        if (user.getBirthday().isAfter(LocalDate.now())) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             log.error("Дата рождения в будущем " + user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
