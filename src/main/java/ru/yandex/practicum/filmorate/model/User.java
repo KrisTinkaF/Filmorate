@@ -9,6 +9,7 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Set;
 
 @Setter
 @Getter
@@ -24,6 +25,7 @@ public class User {
     private String login;
     private String name;
     private LocalDate birthday;
+    private Set<Long> friends;
 
     @Override
     public boolean equals(Object object) {

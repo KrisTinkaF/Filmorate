@@ -2,84 +2,70 @@ package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import java.time.LocalDate;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
+
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
+
+    private final UserService userService;
+    private final UserStorage userStorage;
+
+    public UserController(UserService userService, UserStorage userStorage) {
+        this.userService = userService;
+        this.userStorage = userStorage;
+    }
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
+        return userStorage.getAllUsers();
+    }
+
+    @GetMapping("/{userId}")
+    public User getUserById(@PathVariable Long userId) {
+        return userStorage.getUserById(userId);
+    }
+
+    @GetMapping("/{userId}/friends")
+    public Collection<User> getUserFriends(@PathVariable Long userId) throws NotFoundException {
+        return userService.getUserFriends(userId);
+    }
+
+    @GetMapping("/{userId}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable Long userId,
+                                           @PathVariable Long otherId) throws NotFoundException {
+        return userService.getCommonFriends(userId, otherId);
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user) {
-
-        checkLogin(user);
-        fillUserName(user);
-        checkBirthday(user);
-        user.setId(getNextId());
-        users.put(user.getId(), user);
-        return user;
+    public User create(@Valid @RequestBody User user) throws ValidationException {
+        return userStorage.createUser(user);
     }
 
     @PutMapping
-    public User update(@Valid @RequestBody User newUser) throws NotFoundException {
-        if (newUser.getId() == null) {
-            throw new ValidationException("Id должен быть указан");
-        }
-        checkLogin(newUser);
-        fillUserName(newUser);
-        checkBirthday(newUser);
-        User oldUser = users.get(newUser.getId());
-        if (oldUser == null) {
-            throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
-        }
-        oldUser.setName(newUser.getName());
-        oldUser.setLogin(newUser.getLogin());
-        oldUser.setEmail(newUser.getEmail());
-        oldUser.setBirthday(newUser.getBirthday());
-        return oldUser;
+    public User update(@Valid @RequestBody User newUser) throws NotFoundException, ValidationException {
+        return userStorage.updateUser(newUser);
     }
 
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
+    @PutMapping("/{userId}/friends/{friendId}")
+    public Collection<User> addAsFriend(@PathVariable Long userId,
+                       @PathVariable Long friendId) throws NotFoundException {
+        return userService.addAsFriend(userId, friendId);
     }
 
-    public void fillUserName(User user) {
-        if (!StringUtils.hasText(user.getName())) {
-            log.warn("Имя пользователя отсутствует");
-            user.setName(user.getLogin());
-        }
+    @DeleteMapping("/{userId}/friends/{friendId}")
+    public Collection<User> deleteFromFriends(@PathVariable Long userId,
+                                        @PathVariable Long friendId) throws NotFoundException {
+        return userService.removeFromFriends(userId, friendId);
     }
 
-    public void checkBirthday(User user) {
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Дата рождения в будущем " + user.getBirthday());
-            throw new ValidationException("Дата рождения не может быть в будущем");
-        }
-    }
 
-    public void checkLogin(User user) {
-        if (user.getLogin().contains(" ")) {
-            log.error("Логин содержит пробелы " + user.getLogin());
-            throw new ValidationException("Логин не должен содержать пробелы");
-        }
-    }
 }

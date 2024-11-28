@@ -6,70 +6,58 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-    private final Map<Long, Film> films = new HashMap<>();
+
+    private final FilmService filmService;
+    private final FilmStorage filmStorage;
+
+    public FilmController(FilmService filmService, FilmStorage filmStorage) {
+        this.filmService = filmService;
+        this.filmStorage = filmStorage;
+    }
 
     @GetMapping
     public Collection<Film> findAll() {
-        return films.values();
+        return filmStorage.getAllFilms();
+    }
+
+    @GetMapping("/{filmId}")
+    public Film getFilmById(@PathVariable Long filmId) {
+        return filmStorage.getFilmById(filmId);
+    }
+
+    @GetMapping("/popular")
+    public Collection<Film> getFilmById(@RequestParam(defaultValue = "10") int count) throws ValidationException {
+        return filmService.getMostPopular(count);
     }
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
-        checkDescription(film);
-        checkReleaseDate(film);
-        film.setId(getNextId());
-        films.put(film.getId(), film);
-        return film;
+    public Film create(@Valid @RequestBody Film film) throws ValidationException {
+        return filmStorage.createFilm(film);
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody Film newFilm) throws NotFoundException {
-        if (newFilm.getId() == null) {
-            throw new ValidationException("Id должен быть указан");
-        }
-        checkDescription(newFilm);
-        checkReleaseDate(newFilm);
-        Film oldFilm = films.get(newFilm.getId());
-        if (oldFilm == null) {
-            throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
-        }
-        oldFilm.setName(newFilm.getName());
-        oldFilm.setDescription(newFilm.getDescription());
-        oldFilm.setReleaseDate(newFilm.getReleaseDate());
-        oldFilm.setDuration(newFilm.getDuration());
-        return oldFilm;
+    public Film update(@Valid @RequestBody Film newFilm) throws NotFoundException, ValidationException {
+        return filmStorage.updateFilm(newFilm);
     }
 
-    public void checkDescription(Film film) {
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            log.error("Описание слишком длинное " + film.getDescription().length());
-            throw new ValidationException("Описание не может быть более 200 символов");
-        }
+    @PutMapping("/{filmId}/like/{userId}")
+    public Film setLike(Long filmId, Long userId) throws NotFoundException {
+        return filmService.setLike(filmId, userId);
     }
 
-    public void checkReleaseDate(Film film) {
-        if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895,12,28))) {
-            log.error("Дата релиза раньше даты возникновения кино " + film.getReleaseDate());
-            throw new ValidationException("Дата релиза не может быть ранее 28 декабря 1895 года");
-        }
+    @DeleteMapping("/{filmId}/like/{userId}")
+    public Film deleteLike(Long filmId, Long userId) throws NotFoundException {
+        return filmService.removeLike(filmId, userId);
     }
 
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
-    }
+
 }

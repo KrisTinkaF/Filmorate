@@ -9,6 +9,7 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Set;
 
 @Setter
 @Getter
@@ -22,6 +23,7 @@ public class Film {
     private LocalDate releaseDate;
     @Positive
     private Integer duration;
+    private Set<Long> likes;
 
     @Override
     public boolean equals(Object object) {
