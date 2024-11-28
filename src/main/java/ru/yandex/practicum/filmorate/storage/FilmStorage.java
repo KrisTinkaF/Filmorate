@@ -15,4 +15,8 @@ public interface FilmStorage {
     Film createFilm(Film film) throws ValidationException;
 
     Film updateFilm(Film film) throws NotFoundException, ValidationException;
+
+    Collection<Film> sortByLikes();
+
+    boolean existsById(Long filmId);
 }

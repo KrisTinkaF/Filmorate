@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,16 +57,29 @@ public class InMemoryFilmStorage implements FilmStorage {
 
     private void checkDescription(Film film) throws ValidationException {
         if (film.getDescription() != null && film.getDescription().length() > 200) {
-            log.error("Описание слишком длинное " + film.getDescription().length());
+            log.warn("Описание слишком длинное " + film.getDescription().length());
             throw new ValidationException("Описание не может быть более 200 символов");
         }
     }
 
     private void checkReleaseDate(Film film) throws ValidationException {
         if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1895,12,28))) {
-            log.error("Дата релиза раньше даты возникновения кино " + film.getReleaseDate());
+            log.warn("Дата релиза раньше даты возникновения кино " + film.getReleaseDate());
             throw new ValidationException("Дата релиза не может быть ранее 28 декабря 1895 года");
         }
+    }
+
+    @Override
+    public Collection<Film> sortByLikes() {
+        return films.values().stream().sorted(Comparator.comparing(film -> film.getLikes().size())).toList();
+    }
+
+    @Override
+    public boolean existsById(Long filmId) {
+        if (getFilmById(filmId) == null) {
+            return false;
+        }
+        return true;
     }
 
     private long getNextId() {

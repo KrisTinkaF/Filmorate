@@ -8,9 +8,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -66,16 +64,33 @@ public class InMemoryUserStorage implements UserStorage {
 
     public void checkBirthday(User user) throws ValidationException {
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Дата рождения в будущем " + user.getBirthday());
+            log.warn("Дата рождения в будущем " + user.getBirthday());
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
 
     public void checkLogin(User user) throws ValidationException {
         if (user.getLogin().contains(" ")) {
-            log.error("Логин содержит пробелы " + user.getLogin());
+            log.warn("Логин содержит пробелы " + user.getLogin());
             throw new ValidationException("Логин не должен содержать пробелы");
         }
+    }
+
+    @Override
+    public boolean existsById(Long userId) {
+        if (users.get(userId) == null) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public Collection<User> getFriends(Set<Long> friendsIds) {
+        List<User> friends = new ArrayList<>();
+        for (Long id : friendsIds) {
+            friends.add(getUserById(id));
+        }
+        return friends;
     }
 
     private long getNextId() {

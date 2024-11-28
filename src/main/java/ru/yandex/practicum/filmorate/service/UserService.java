@@ -19,42 +19,26 @@ public class UserService {
     }
 
     public Collection<User> addAsFriend(Long userId, Long friendId) throws NotFoundException {
-        User user = userStorage.getUserById(userId);
-        if (user == null) {
-            throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
-        }
-        if (userStorage.getUserById(friendId) == null) {
-            throw new NotFoundException("Пользователь с id = " + friendId + " не найден");
-        }
+        User user = getUser(userId);
+        User friend = getUser(friendId);
         Set<Long> friends = user.getFriends();
         friends.add(friendId);
         user.setFriends(friends);
-        return getFriends(friends);
+        return userStorage.getFriends(friends);
     }
 
     public Collection<User> removeFromFriends(Long userId, Long friendId) throws NotFoundException {
-        User user = userStorage.getUserById(userId);
-        if (user == null) {
-            throw new NotFoundException("Пользователь с id = " + user.getId() + " не найден");
-        }
-        if (userStorage.getUserById(friendId) == null) {
-            throw new NotFoundException("Пользователь с id = " + friendId + " не найден");
-        }
+        User user = getUser(userId);
+        User friend = getUser(friendId);
         Set<Long> friends = user.getFriends();
         friends.remove(friendId);
         user.setFriends(friends);
-        return getFriends(friends);
+        return userStorage.getFriends(friends);
     }
 
     public Collection<User> getCommonFriends(Long userId, Long otherId) throws NotFoundException {
-        if (userStorage.getUserById(userId) == null) {
-            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
-        }
-        if (userStorage.getUserById(otherId) == null) {
-            throw new NotFoundException("Пользователь с id = " + otherId + " не найден");
-        }
-        Set<Long> userFriends = userStorage.getUserById(userId).getFriends();
-        Set<Long> otherUserFriends = userStorage.getUserById(otherId).getFriends();
+        Set<Long> userFriends = getUser(userId).getFriends();
+        Set<Long> otherUserFriends = getUser(otherId).getFriends();
         List<User> commonFriends = new ArrayList<>();
         userFriends.retainAll(otherUserFriends);
         for (Long id : userFriends) {
@@ -64,19 +48,15 @@ public class UserService {
     }
 
     public Collection<User> getUserFriends(Long userId) throws NotFoundException {
-        User user = userStorage.getUserById(userId);
-        if (user == null) {
-            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
-        }
+        User user = getUser(userId);
         Set<Long> friends = user.getFriends();
-        return getFriends(friends);
+        return userStorage.getFriends(friends);
     }
 
-    private Collection<User> getFriends(Set<Long> friendsIds) {
-        List<User> friends = new ArrayList<>();
-        for (Long id : friendsIds) {
-            friends.add(userStorage.getUserById(id));
+    public User getUser(Long userId) throws NotFoundException {
+        if (!userStorage.existsById(userId)) {
+            throw new NotFoundException("Пользователь с id = " + userId + " не найден");
         }
-        return friends;
+        return userStorage.getUserById(userId);
     }
 }
